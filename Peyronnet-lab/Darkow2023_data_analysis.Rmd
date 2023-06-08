@@ -1,0 +1,464 @@
+---
+title: "Darkow et al, 2023, cardiac MSC"
+author: "Dilmurat Yusuf"
+output:
+    html_document:
+        toc: true
+        toc_float: true
+        toc_depth: 4
+---
+
+**Last updated:** `r Sys.Date()`
+**Code version:** `r system("git log -1 --format=oneline | cut -d' ' -f1", intern = TRUE)`
+
+```{r packages, results=FALSE, message=FALSE, result=FALSE, warning=FALSE}
+library("tidyverse")
+library("DESeq2")
+library("clusterProfiler")
+```
+
+This R markdown file showcases how I perform PCA and differential expression
+analysis on different comparison groups. Currently, it is only tested on Linux.
+The [Galaxy workflow](https://usegalaxy.eu/u/iekm/w/copy-of-darkow-et-al-2023-cardiac-msc-workflow)
+by Elisa Darkow was utilized to create featureCounts tables.
+They are available for download [here](./featureCounts.zip).
+You can quickly unpack it in your working directory.
+Plus, the experimental design file is also downloadable
+from [here](./Experimental_design.csv).
+
+# Create dataframe of feature count
+
+```{r mk_count_matrix, warning=FALSE}
+read_table <- function(table_name, pat){
+    # Here I read table to dataframe and
+    # name the count column with sample ID.
+
+    # the input example:
+    # table_name = "featureCounts/SRR6898748.tabular"
+    # pat = ".tabular"
+
+    # extract sample ID from table file name
+    basename_ <- basename(table_name)
+    basename <- gsub(pat, "", basename_)
+
+    # add sample ID as column name
+    df <- read.table(table_name, sep = "\t", header = TRUE,
+                     col.names = c("gene_id", basename),
+                     stringsAsFactors = FALSE)
+    return(df)
+}
+
+get_counts <- function(store_dir, pat, count_filter=0){
+  # get a list of dataframes
+  tables <- list.files(store_dir, pattern=pat, full.names = TRUE)
+  dfs <- lapply(tables, read_table, pat)
+
+  # merge the list of dataframes to one datadframe
+  dfs_joined <- Reduce(function(...) full_join(..., by = "gene_id"), dfs)
+  # replace NA to 0
+  # NA are where the values are missing in one or more libraries
+  dfs_joined <- mutate_all(dfs_joined, funs(replace(., which(is.na(.)), 0)))
+
+  # here with count_filter, I can choose to filter
+  # the gene with low counts e.g. 10 reads
+  # this reduces the memory size by removing noisy low counts
+  # however, some novice biologist still wants the Genes
+  # with 0 counts for some reason.
+  dfs_filtered <- subset(dfs_joined, rowSums(subset(dfs_joined, select = 2:length(dfs_joined))) >= count_filter)
+
+  # replace rownames with column gene_id
+  dfs_filtered <- dfs_filtered %>% remove_rownames %>% column_to_rownames(var="gene_id")
+
+  counts <- as.matrix(dfs_filtered)
+  return(counts)
+  }
+
+featureCounts_dir <- './featureCounts'
+# merge counts of different samples into one dataframe
+featureCounts <- get_counts(featureCounts_dir, '.csv')
+```
+
+# Descriptive and differential expression analysis
+
+## prepare design table
+```{r sample_data, warning=FALSE, message=FALSE, result=FALSE}
+experimental_design <- './Experimental_design.csv'
+# set all columns as factors
+design <- read.table(experimental_design, sep = "\t", header = TRUE, row.names="sample_ID", colClasses='factor')
+# change 'm' to 'male' and 'f' to 'female'
+design$Sex <- str_replace(design$Sex, 'm', 'male') %>% str_replace(., 'f', 'female')
+
+# order columns of count matrix according to rows of design data
+featureCounts <- featureCounts[, design %>% rownames]
+all(rownames(design) == colnames(featureCounts))
+```
+
+## build analysis functions
+```{r mk_functions_PCA_DE, warning=FALSE, message=FALSE, result=FALSE}
+mk_PCA <- function(dds_data, title, param_str, file_id, color="source", rev_PC1 = FALSE, rev_PC2 = FALSE, shape_title, shape_symbol){
+  # function to generate a PCA table
+
+  # input examples:
+  # dds_data = dds_RA_AFvsSR_TD
+  # title = 'RA, AF vs. SR, Thomas vs. Darkow'
+  # param_str = "Health.status..general."
+  # file_id = 'RA_AFvsSR_TD'
+
+  # transform raw counts with vst
+  vst_data <- vst(dds_data, blind=FALSE)
+  counts_vst <- vst_data %>% assay
+  # remove batch effects from vst transformed counts
+  counts_rb <- limma::removeBatchEffect(counts_vst, vst_data$source)
+  # save normalized counts after the batch removal
+  # var: file_id
+  # change rownames to colnames
+  counts_rb_ <- counts_rb %>% as.data.frame %>% rownames_to_column(var='ENSEMBL')
+
+  # run PCA
+  vst_rb <- vst_data
+  assay(vst_rb) <- counts_rb
+  # var: param_str
+  pcadata_vst_rb <- plotPCA(vst_rb, intgroup = c(param_str, color, 'Sex'),
+                      returnData=TRUE)
+
+  # param_str %in% colnames(pcadata_vst_rb)
+  pcadata_vst_rb$group_gender <- paste(pcadata_vst_rb[,param_str], pcadata_vst_rb$Sex, sep=' ')
+
+  # save table of PCA parameters
+  # var: file_id
+  fn_PCA_table = paste("figures/pcadata_vst_rb_", file_id, ".csv", sep="")
+  write.csv(pcadata_vst_rb, file = fn_PCA_table, row.names=FALSE)
+  paste(fn_PCA_table, "is created.", sep=" ") %>% print
+
+  percentVar_vst <- round(100 * attr(pcadata_vst_rb, "percentVar"))
+  # var: param_str
+  if (rev_PC1){
+    PC1 = -pcadata_vst_rb$"PC1"
+  }else{PC1 = pcadata_vst_rb$"PC1"}
+  if (rev_PC2){
+    PC2 = -pcadata_vst_rb$"PC2"
+  }else{PC2 = pcadata_vst_rb$"PC2"}
+  ggplot(pcadata_vst_rb, aes_string(PC1, PC2, color=color, shape="group_gender")) +
+      geom_point(size=4) +
+      scale_shape_manual(values=shape_symbol)+
+      # geom_text(aes(label=name),hjust=0, vjust=0) +
+      xlab(paste0("PC1: ",percentVar_vst[1],"% variance")) +
+      ylab(paste0("PC2: ",percentVar_vst[2],"% variance")) +
+      # ggtitle(title) +
+      scale_colour_brewer(palette="Set1") +
+      labs(shape=shape_title, color = "Reference") +
+      theme(text = element_text(size=12))
+
+  # var: file_id
+  fn_PCA = paste("figures/PCA_vst_rb_", file_id, ".png", sep="")
+  ggsave(fn_PCA)
+  paste(fn_PCA, "is created.", sep=" ") %>% print
+
+  return(counts_rb_)
+}
+
+mk_DE <- function(dds, condition, factor_1, factor_2, file_id, counts_rb, padj_filter = 0.05){
+    # This function is to generate DE table
+
+    # input examples:
+    # dds = dds_deseq_LV_HFvsdornor_LSD
+    # condition = 'Health.status..general.'
+    # factor_1 = 'HF'
+    # factor_2 = 'Donor'
+    # file_id = 'LV_HFvsdornor_LSD'
+    # counts_rb = counts_rb_HFvsdornor_LSD
+
+    # calculate DE
+    # to account for noisy genes with low counts or high variability
+    contrast <- lfcShrink(dds=dds, contrast=c(condition, factor_1, factor_2), type='ashr')
+
+    contrast_lfc <- contrast[, c('baseMean', 'log2FoldChange', 'padj')] %>%
+                       as.data.frame %>%
+                       subset(., padj <= 0.05) %>% # filter out gene without significance
+                       rownames_to_column(var="ENSEMBL")
+    contrast_rb_cnt <- merge(contrast_lfc, counts_rb, by = 'ENSEMBL')
+    counts_dds <- counts(dds) %>% as.data.frame %>% rownames_to_column(var='ENSEMBL')
+    contrast_dds_cnt <- merge(contrast_lfc, counts_dds, by = 'ENSEMBL')
+
+    # translate ids
+    translate_ids <- bitr(contrast_rb_cnt[, 'ENSEMBL'], fromType="ENSEMBL", toType=c("ENTREZID", "SYMBOL", "GENENAME"), OrgDb="org.Hs.eg.db",  drop = FALSE)
+    contrast_rb_cnt_symbol <- merge(translate_ids, contrast_rb_cnt, by = 'ENSEMBL') %>%
+                          .[order(.$padj),]
+    contrast_dds_cnt_symbol <- merge(translate_ids, contrast_dds_cnt, by = 'ENSEMBL') %>%
+                          .[order(.$padj),]
+
+    fn_DE = paste("tables/DE_rbCount_", file_id, ".csv", sep="")
+    # var: file_id
+    write.csv(contrast_rb_cnt_symbol, file = fn_DE, row.names=FALSE)
+    print(paste(fn_DE, "is created.", sep=" "))
+
+    fn_DE_dds = paste("tables/DE_ddsCount_", file_id, ".csv", sep="")
+    # var: file_id
+    write.csv(contrast_dds_cnt_symbol, file = fn_DE_dds, row.names=FALSE)
+    print(paste(fn_DE_dds, "is created.", sep=" "))
+
+}
+
+# create directories for figures and tables
+create_dir <- function(directory){
+    if (!dir.exists(directory)) {
+      # Create the directory
+      dir.create(directory)
+      print(paste("Directory", directory, "created."))
+    } else {
+      print(paste("Directory", directory, "already exists."))
+    }
+}
+create_dir('./figures')
+create_dir('./tables')
+```
+
+## HF vs. Donor
+
+```{r LV_HFvsdornor_LSD, warning=FALSE, message=FALSE, result=FALSE}
+# subset: LV, HF vs. donor, Liu vs. Schiano vs. Darkow
+# Prepare dataframes of design and counts
+design_LV_HFvsdornor_LSD <- subset(design, Sample.provenance.specific. %in% c('LV')
+                                    & Health.status..general. %in% c('Donor', 'HF')
+                                    & source %in% c('Schiano', 'Liu', 'Darkow')) %>%
+                                    droplevels
+counts_raw_LV_HFvsdornor_LSD <- featureCounts[, rownames(design_LV_HFvsdornor_LSD)]
+all(rownames(design_LV_HFvsdornor_LSD) == colnames(counts_raw_LV_HFvsdornor_LSD))
+
+# create DESeqDataSet From Matrix
+dds_LV_HFvsdornor_LSD <- DESeqDataSetFromMatrix(countData = counts_raw_LV_HFvsdornor_LSD,
+                              colData = design_LV_HFvsdornor_LSD,
+                              design = ~ source + Health.status..general.)
+
+file_id = "LV_HFvsdornor_LSD"
+# make PCA
+counts_rb_HFvsdornor_LSD <- mk_PCA(dds_data = dds_LV_HFvsdornor_LSD,
+       title = 'LV, HF vs. donor, Liu vs. Schiano vs. Darkow',
+       color = "source",
+       param_str = "Health.status..general.",
+       rev_PC2 = TRUE, rev_PC1 = TRUE,
+       file_id = file_id,
+       shape_title = "Health status and gender",
+       shape_symbol = c(15, 0, 17, 2))
+
+# make DE
+dds_deseq_LV_HFvsdornor_LSD <- DESeq(dds_LV_HFvsdornor_LSD)
+mk_DE(dds = dds_deseq_LV_HFvsdornor_LSD,
+      condition = 'Health.status..general.',
+      factor_1 = 'HF', factor_2 = 'Donor',
+      file_id = file_id, counts_rb = counts_rb_HFvsdornor_LSD)
+```
+
+## DCM vs. donor
+
+```{r LV_DCMvsdonor_LSD, warning=FALSE, message=FALSE, result=FALSE}
+# subset: LV, DCM vs. donor, Liu vs. Schiano vs. Darkow
+design_LV_DCMvsdonor_LSD <- subset(design,
+                                  Sample.provenance.specific. %in% c('LV')
+                                  & Health.status..specific. %in% c('Donor', 'DCM')
+                                  & source %in% c('Schiano', 'Liu', 'Darkow')) %>%
+                                  droplevels
+# design_LV_DCMvsdonor_LSD %>% kable(digits=100)
+counts_raw_LV_DCMvsdonor_LSD <- featureCounts[, rownames(design_LV_DCMvsdonor_LSD)]
+all(rownames(design_LV_DCMvsdonor_LSD) == colnames(counts_raw_LV_DCMvsdonor_LSD))
+
+# create DESeqDataSet From Matrix
+# var: Health.status..specific.
+dds_LV_DCMvsdonor_LSD <- DESeqDataSetFromMatrix(countData = counts_raw_LV_DCMvsdonor_LSD,
+                              colData = design_LV_DCMvsdonor_LSD,
+                              design = ~ source + Health.status..specific.)
+
+file_id = 'LV_DCMvsdonor_LSD'
+# make PCA
+counts_rb_LV_DCMvsdonor_LSD <- mk_PCA(dds_data = dds_LV_DCMvsdonor_LSD,
+       title = 'LV, DCM vs. donor, Liu vs. Schiano vs. Darkow',
+       param_str = "Health.status..specific.",
+       file_id = file_id,  shape_title="Health status and gender",
+       rev_PC2 = FALSE, shape_symbol=c(19, 1, 15, 0))
+# make DE
+dds_deseq_LV_DCMvsdonor_LSD <- DESeq(dds_LV_DCMvsdonor_LSD)
+mk_DE(dds = dds_deseq_LV_DCMvsdonor_LSD,
+      condition = 'Health.status..specific.',
+      factor_1 = 'DCM', factor_2 = 'Donor',
+      file_id = file_id, counts_rb = counts_rb_LV_DCMvsdonor_LSD)
+```
+
+## AF vs. SR
+
+```{r RA_AFvsSR_TD, warning=FALSE, message=FALSE, result=FALSE}
+# colnames(design)
+# 'Sample.provenance.specific.''Sample.provenance..general.'
+# 'Health.status..specific.''Health.status..general.''Sex''Age''source'
+
+# subset: RA, AF vs. SR, Thomas vs. Darkow
+design_RA_AFvsSR_TD <- subset(design,
+                              Sample.provenance.specific. %in% c('RA')
+                              & Health.status..general. %in% c('AF', 'SR')
+                              & source %in% c('Thomas', 'Darkow')) %>%
+                              droplevels
+# design_RA_AFvsSR_TD %>% kable(digits=100)
+counts_raw_RA_AFvsSR_TD <- featureCounts[, rownames(design_RA_AFvsSR_TD)]
+all(rownames(design_RA_AFvsSR_TD) == colnames(counts_raw_RA_AFvsSR_TD))
+
+# create DESeqDataSet From Matrix
+dds_RA_AFvsSR_TD <- DESeqDataSetFromMatrix(countData = counts_raw_RA_AFvsSR_TD,
+                              colData = design_RA_AFvsSR_TD,
+                              design = ~ source + Health.status..general.)
+
+file_id = 'RA_AFvsSR_TD'
+# make PCA
+counts_rb_RA_AFvsSR_TD <- mk_PCA(dds_data = dds_RA_AFvsSR_TD,
+       title = 'RA, AF vs. SR, Thomas vs. Darkow',
+       param_str = "Health.status..general.",
+       file_id = file_id, shape_title="Health status and gender",
+       rev_PC2 = FALSE, shape_symbol=c(5, 10))
+
+# make DE
+dds_deseq_RA_AFvsSR_TD <- DESeq(dds_RA_AFvsSR_TD)
+mk_DE(dds = dds_deseq_RA_AFvsSR_TD,
+      condition = 'Health.status..general.',
+      factor_1 = 'AF', factor_2 = 'SR',
+     file_id = file_id, counts_rb = counts_rb_RA_AFvsSR_TD)
+```
+
+## AF vs. CAD
+
+```{r RA_AFvsCAD_TD, warning=FALSE, message=FALSE, result=FALSE}
+# subset: RA, AF vs. CAD, Thomas vs. Darkow
+design_RA_AFvsCAD_TD <- subset(design,
+                              Sample.provenance.specific. %in% c('RA')
+                              & Health.status..specific. %in% c('AF', 'CAD')
+                              & source %in% c('Thomas', 'Darkow')) %>%
+                              droplevels
+
+counts_raw_RA_AFvsCAD_TD <- featureCounts[, rownames(design_RA_AFvsCAD_TD)]
+all(rownames(design_RA_AFvsCAD_TD) == colnames(counts_raw_RA_AFvsCAD_TD))
+
+# create DESeqDataSet From Matrix
+dds_RA_AFvsCAD_TD <- DESeqDataSetFromMatrix(countData = counts_raw_RA_AFvsCAD_TD,
+                              colData = design_RA_AFvsCAD_TD,
+                              design = ~ source + Health.status..specific.)
+
+file_id = 'RA_AFvsCAD_TD'
+# make PCA
+counts_rb_RA_AFvsCAD_TD <- mk_PCA(dds_data = dds_RA_AFvsCAD_TD,
+       title = 'RA, AF vs. CAD, Thomas vs. Darkow',
+       param_str = "Health.status..specific.",
+       file_id = file_id, shape_title="Health status and gender",
+       rev_PC2 = FALSE, shape_symbol=c(5, 10))
+# make DE
+dds_deseq_RA_AFvsCAD_TD <- DESeq(dds_RA_AFvsCAD_TD)
+mk_DE(dds = dds_deseq_RA_AFvsCAD_TD,
+      condition = 'Health.status..specific.',
+      factor_1 = 'AF', factor_2 = 'CAD',
+     file_id = file_id, counts_rb = counts_rb_RA_AFvsCAD_TD)
+```
+
+## Atria vs. Ventricles
+
+```{r donor_atriaVSventricles_JD, warning=FALSE, message=FALSE, result=FALSE}
+# subset: donor, atria vs. ventricles, Johnson vs. Darkow
+design_donor_atriaVSventricles_JD <- subset(design,
+                              Health.status..general. %in% c('Donor')
+                              & Sample.provenance..general. %in% c('Atria', 'Ventricles')
+                              & source %in% c('Johnson', 'Darkow')) %>%
+                              droplevels
+# design_donor_atriaVSventricles_JD %>% kable(digits=100)
+counts_raw_donor_atriaVSventricles_JD <- featureCounts[, rownames(design_donor_atriaVSventricles_JD)]
+all(rownames(design_donor_atriaVSventricles_JD) == colnames(counts_raw_donor_atriaVSventricles_JD))
+
+# create DESeqDataSet From Matrix
+dds_donor_atriaVSventricles_JD <- DESeqDataSetFromMatrix(countData = counts_raw_donor_atriaVSventricles_JD,
+                              colData = design_donor_atriaVSventricles_JD,
+                              design = ~ source + Sample.provenance..general.)
+
+file_id = 'donor_atriaVSventricles_JD'
+# make PCA
+counts_rb_donor_atriaVSventricles_JD <- mk_PCA(dds_data = dds_donor_atriaVSventricles_JD,
+       title = 'donor, atria vs. ventricles, Johnson vs. Darkow',
+       param_str = "Sample.provenance..general.",
+       file_id = file_id, rev_PC2 = TRUE,
+       shape_title = "Tissue provenance and gender",
+       shape_symbol = c(19, 1, 15, 0))
+
+# make DE
+dds_deseq_donor_atriaVSventricles_JD <- DESeq(dds_donor_atriaVSventricles_JD)
+mk_DE(dds = dds_deseq_donor_atriaVSventricles_JD,
+      condition = 'Sample.provenance..general.',
+      factor_1 = 'Atria', factor_2 = 'Ventricles',
+     file_id = file_id, counts_rb = counts_rb_donor_atriaVSventricles_JD,
+     padj_filter = 1) # Elisa wants keep all genes without filtering genes by counts
+```
+
+## LA vs. LV
+
+```{r donor_LAvsLV_JD, warning=FALSE, message=FALSE, result=FALSE}
+# subset: donor, LA vs. LV, Johnson vs. Darkow
+design_donor_LAvsLV_JD <- subset(design,
+                              Health.status..general. %in% c('Donor')
+                              & Sample.provenance.specific. %in% c('LA', 'LV')
+                              & source %in% c('Johnson', 'Darkow')) %>%
+                              droplevels
+
+counts_raw_donor_LAvsLV_JD <- featureCounts[, rownames(design_donor_LAvsLV_JD)]
+all(rownames(design_donor_LAvsLV_JD) == colnames(counts_raw_donor_LAvsLV_JD))
+
+# create DESeqDataSet From Matrix
+dds_donor_LAvsLV_JD <- DESeqDataSetFromMatrix(countData = counts_raw_donor_LAvsLV_JD,
+                              colData = design_donor_LAvsLV_JD,
+                              design = ~ source + Sample.provenance.specific.)
+
+file_id = 'donor_LAvsLV_JD'
+# make PCA
+counts_rb_donor_LAvsLV_JD <- mk_PCA(dds_data = dds_donor_LAvsLV_JD,
+       title = 'donor, LA vs. LV, Johnson vs. Darkow',
+       param_str = "Sample.provenance.specific.",
+       file_id = file_id, rev_PC2 = TRUE,
+       shape_title = "Sample provenance and gender",
+       shape_symbol = c(19, 1, 15, 0))
+# make DE
+dds_deseq_donor_LAvsLV_JD <- DESeq(dds_donor_LAvsLV_JD)
+mk_DE(dds = dds_deseq_donor_LAvsLV_JD,
+      condition = 'Sample.provenance.specific.',
+      factor_1 = 'LA', factor_2 = 'LV',
+     file_id = file_id, counts_rb = counts_rb_donor_LAvsLV_JD)
+```
+
+## RA vs. LA
+
+```{r donor_RAvsLA_JD, warning=FALSE, message=FALSE, result=FALSE}
+# subset: donor, RA vs. LA, Johnson vs. Darkow
+design_donor_RAvsLA_JD <- subset(design,
+                              Health.status..general. %in% c('Donor')
+                              & Sample.provenance.specific. %in% c('RA', 'LA')
+                              & source %in% c('Johnson', 'Darkow')) %>%
+                              droplevels
+# design_donor_RAvsLA_JD %>% kable(digits=100)
+counts_raw_donor_RAvsLA_JD <- featureCounts[, rownames(design_donor_RAvsLA_JD)]
+all(rownames(design_donor_RAvsLA_JD) == colnames(counts_raw_donor_RAvsLA_JD))
+
+# create DESeqDataSet From Matrix
+dds_donor_RAvsLA_JD <- DESeqDataSetFromMatrix(countData = counts_raw_donor_RAvsLA_JD,
+                              colData = design_donor_RAvsLA_JD,
+                              design = ~ source + Sample.provenance.specific.)
+
+file_id = 'donor_RAvsLA_JD'
+# make PCA
+counts_rb_donor_RAvsLA_JD <- mk_PCA(dds_data = dds_donor_RAvsLA_JD,
+       title = 'donor, RA vs. LA, Johnson vs. Darkow',
+       param_str = "Sample.provenance.specific.",
+       file_id = file_id, rev_PC2 = TRUE,
+       shape_title = "Sample provenance and gender",
+       shape_symbol = c(19, 1, 15, 0))
+
+# make DE
+dds_deseq_donor_RAvsLA_JD <- DESeq(dds_donor_RAvsLA_JD)
+mk_DE(dds = dds_deseq_donor_RAvsLA_JD,
+      condition = 'Sample.provenance.specific.',
+      factor_1 = 'RA', factor_2 = 'LA',
+     file_id = file_id, counts_rb = counts_rb_donor_RAvsLA_JD)
+```
+
+```{r}
+sessionInfo()
+```
