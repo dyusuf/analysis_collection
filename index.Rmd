@@ -1,0 +1,11 @@
+---
+title: "Analysis for various projects"
+author: "Dilmurat Yusuf"
+output:
+    html_document
+---
+
+**Last updated:** `r Sys.Date()`
+**Code version:** `r system("git log -1 --format=oneline | cut -d' ' -f1", intern = TRUE)`
+
+* [Analysis](./Peyronnet-lab/Darkow2023_data_analysis.html) for Darkow2023
