@@ -1,0 +1,119 @@
+sample_ID	Sample provenance(specific)	Sample provenance (general)	Health status (specific)	Health status (general)	Sex	Age	Age_group	source
+SRR2138381	LV	Ventricles	Donor	Donor	m	25	20 – 29	Schiano
+ERR5106704	RA	Atria	HVD	SR	m	26	20 – 29	Darkow
+SRR2138383	LV	Ventricles	Donor	Donor	m	29	20 – 29	Schiano
+SRR6898725	LA	Atria	Donor	Donor	m	32	30 – 39	Johnson
+SRR6898726	LV	Ventricles	Donor	Donor	m	32	30 – 39	Johnson
+SRR6898727	RA	Atria	Donor	Donor	m	32	30 – 39	Johnson
+SRR6898728	RV	Ventricles	Donor	Donor	m	32	30 – 39	Johnson
+ERR5106599	LV	Ventricles	DCM	HF	m	34	30 – 39	Darkow
+SRR6898715	LA	Atria	Donor	Donor	f	35	30 – 39	Johnson
+SRR6898716	LV	Ventricles	Donor	Donor	f	35	30 – 39	Johnson
+SRR6898717	RA	Atria	Donor	Donor	f	35	30 – 39	Johnson
+SRR6898718	RV	Ventricles	Donor	Donor	f	35	30 – 39	Johnson
+SRR6898735	LA	Atria	Donor	Donor	m	35	30 – 39	Johnson
+SRR6898736	LV	Ventricles	Donor	Donor	m	35	30 – 39	Johnson
+SRR6898737	RA	Atria	Donor	Donor	m	35	30 – 39	Johnson
+SRR6898738	RV	Ventricles	Donor	Donor	m	35	30 – 39	Johnson
+ERR5106602	LV	Ventricles	DCM	HF	m	37	30 – 39	Darkow
+SRR1272189	LV	Ventricles	ICM	HF	f	41	40 – 49	Liu
+ERR5106600	LV	Ventricles	DCM	HF	m	44	40 – 49	Darkow
+SRR6898740	LA	Atria	Donor	Donor	m	47	40 – 49	Johnson
+SRR6898741	LV	Ventricles	Donor	Donor	m	47	40 – 49	Johnson
+SRR6898742	RA	Atria	Donor	Donor	m	47	40 – 49	Johnson
+SRR6898743	RV	Ventricles	Donor	Donor	m	47	40 – 49	Johnson
+SRR2138382	LV	Ventricles	Donor	Donor	f	48	40 – 49	Schiano
+SRR6380730	LV	Ventricles	ICM	HF	m	49	40 – 49	Pepin
+ERR5106576	RA	Atria	CAD	SR	m	49	40 – 49	Darkow
+ERR5106601	LV	Ventricles	DCM	HF	m	49	40 – 49	Darkow
+ERR5106608	LV	Ventricles	ICM	HF	m	49	40 – 49	Darkow
+SRR6898745	LA	Atria	Donor	Donor	m	50	50 -59	Johnson
+SRR6898746	LV	Ventricles	Donor	Donor	m	50	50 -59	Johnson
+SRR6898747	RA	Atria	Donor	Donor	m	50	50 -59	Johnson
+SRR6898748	RV	Ventricles	Donor	Donor	m	50	50 -59	Johnson
+SRR1272188	LV	Ventricles	Donor	Donor	m	52	50 -59	Liu
+ERR5106580	LV	Ventricles	Donor	Donor	m	53	50 -59	Darkow
+ERR5106581	RA	Atria	Donor	Donor	m	53	50 -59	Darkow
+SRR6898710	LA	Atria	Donor	Donor	m	54	50 -59	Johnson
+SRR6898711	LV	Ventricles	Donor	Donor	m	54	50 -59	Johnson
+SRR6898712	RA	Atria	Donor	Donor	m	54	50 -59	Johnson
+SRR6898713	RV	Ventricles	Donor	Donor	m	54	50 -59	Johnson
+ERR5106574	RA	Atria	HVD	SR	m	54	50 -59	Darkow
+SRR2138387	LV	Ventricles	DCM	HF	m	56	50 -59	Schiano
+GSM3666571	LA	Atria	CAD	SR	m	56	50 -59	Thomas
+GSM3666572	RA	Atria	CAD	SR	m	56	50 -59	Thomas
+ERR5106604	LV	Ventricles	DCM	HF	m	56	50 -59	Darkow
+SRR2138384	LV	Ventricles	Donor	Donor	f	57	50 -59	Schiano
+SRR1272186	LV	Ventricles	Donor	Donor	f	57	50 -59	Liu
+ERR5106578	LV	Ventricles	Donor	Donor	f	57	50 -59	Darkow
+ERR5106579	LA	Atria	Donor	Donor	f	57	50 -59	Darkow
+ERR5106609	LV	Ventricles	ICM	HF	m	57	50 -59	Darkow
+ERR5106610	RA	Atria	HVD	SR	m	57	50 -59	Darkow
+ERR5106582	LV	Ventricles	Donor	Donor	f	58	50 -59	Darkow
+ERR5106583	LA	Atria	Donor	Donor	f	58	50 -59	Darkow
+ERR5106584	RA	Atria	Donor	Donor	f	58	50 -59	Darkow
+ERR5106591	LV	Ventricles	Donor	Donor	m	58	50 -59	Darkow
+ERR5106592	LA	Atria	Donor	Donor	m	58	50 -59	Darkow
+ERR5106593	RA	Atria	Donor	Donor	m	58	50 -59	Darkow
+GSM3666575	LA	Atria	CAD	SR	m	59	50 -59	Thomas
+GSM3666576	RA	Atria	CAD	SR	m	59	50 -59	Thomas
+SRR10072415_16	RA	Atria	HVD	SR	f	59	50 -59	Yao
+SRR10072417_18	RA	Atria	HVD	SR	m	59	50 -59	Yao
+SRR6380732	LV	Ventricles	ICM	HF	m	59	50 -59	Pepin
+SRR1272191	LV	Ventricles	DCM	HF	f	59	50 -59	Liu
+ERR5106596	LV	Ventricles	Donor	Donor	m	59	50 -59	Darkow
+ERR5106597	LA	Atria	Donor	Donor	m	59	50 -59	Darkow
+ERR5106598	RA	Atria	Donor	Donor	m	59	50 -59	Darkow
+ERR5106571	RA	Atria	CAD	SR	m	60	60 – 69	Darkow
+ERR5106594	LV	Ventricles	Donor	Donor	f	60	60 – 69	Darkow
+ERR5106595	RA	Atria	Donor	Donor	f	60	60 – 69	Darkow
+ERR5106611	RA	Atria	CAD	SR	m	60	60 – 69	Darkow
+GSM3666579	LA	Atria	CAD	SR	m	61	60 – 69	Thomas
+GSM3666580	RA	Atria	CAD	SR	m	61	60 – 69	Thomas
+SRR6898730	LA	Atria	Donor	Donor	m	61	60 – 69	Johnson
+SRR6898731	LV	Ventricles	Donor	Donor	m	61	60 – 69	Johnson
+SRR6898732	RA	Atria	Donor	Donor	m	61	60 – 69	Johnson
+SRR6898733	RV	Ventricles	Donor	Donor	m	61	60 – 69	Johnson
+SRR10072419_20	RA	Atria	HVD	SR	m	61	60 – 69	Yao
+ERR5106605	LV	Ventricles	ICM	HF	m	61	60 – 69	Darkow
+GSM3666574	RA	Atria	HVD	SR	m	62	60 – 69	Thomas
+SRR6380738	LV	Ventricles	ICM	HF	m	63	60 – 69	Pepin
+ERR5106606	LV	Ventricles	ICM	HF	m	63	60 – 69	Darkow
+ERR5106613	RA	Atria	AF	AF	m	63	60 – 69	Darkow
+ERR5106706	RA	Atria	AF	AF	m	63	60 – 69	Darkow
+SRR2138388	LV	Ventricles	DCM	HF	f	64	60 – 69	Schiano
+SRR6898720	LA	Atria	Donor	Donor	f	65	60 – 69	Johnson
+SRR6898721	LV	Ventricles	Donor	Donor	f	65	60 – 69	Johnson
+SRR6898722	RA	Atria	Donor	Donor	f	65	60 – 69	Johnson
+SRR6898723	RV	Ventricles	Donor	Donor	f	65	60 – 69	Johnson
+SRR6380737	LV	Ventricles	ICM	HF	m	65	60 – 69	Pepin
+ERR5106588	LV	Ventricles	Donor	Donor	f	65	60 – 69	Darkow
+ERR5106589	LA	Atria	Donor	Donor	f	65	60 – 69	Darkow
+ERR5106590	RA	Atria	Donor	Donor	f	65	60 – 69	Darkow
+GSM3666581	LA	Atria	AF	AF	m	68	60 – 69	Thomas
+GSM3666582	RA	Atria	AF	AF	m	68	60 – 69	Thomas
+SRR10072421_22	RA	Atria	HVD	SR	m	68	60 – 69	Yao
+SRR1272190	LV	Ventricles	DCM	HF	m	68	60 – 69	Liu
+ERR5106707	RA	Atria	AF	AF	m	68	60 – 69	Darkow
+ERR5106708	RA	Atria	AF	AF	m	68	60 – 69	Darkow
+ERR5106711	RA	Atria	HVD	SR	m	68	60 – 69	Darkow
+GSM3666583	LA	Atria	AF	AF	m	69	60 – 69	Thomas
+GSM3666584	RA	Atria	AF	AF	m	69	60 – 69	Thomas
+ERR5106585	LV	Ventricles	Donor	Donor	m	69	60 – 69	Darkow
+ERR5106586	LA	Atria	Donor	Donor	m	69	60 – 69	Darkow
+ERR5106587	RA	Atria	Donor	Donor	m	69	60 – 69	Darkow
+ERR5106709	RA	Atria	AF	AF	m	69	60 – 69	Darkow
+SRR6380736	LV	Ventricles	ICM	HF	m	70	70 – 79	Pepin
+SRR10072423_24	RA	Atria	HVD	SR	m	71	70 – 79	Yao
+SRR10072425_26	RA	Atria	HVD	SR	f	71	70 – 79	Yao
+GSM3666587	LA	Atria	AF	AF	m	72	70 – 79	Thomas
+GSM3666588	RA	Atria	AF	AF	m	72	70 – 79	Thomas
+GSM3666577	LA	Atria	CAD	SR	m	74	70 – 79	Thomas
+GSM3666578	RA	Atria	CAD	SR	m	74	70 – 79	Thomas
+ERR5106710	RA	Atria	AF	AF	m	74	70 – 79	Darkow
+ERR5106575	RA	Atria	CAD	SR	m	76	70 – 79	Darkow
+GSM3666589	LA	Atria	AF	AF	m	78	70 – 79	Thomas
+GSM3666590	RA	Atria	AF	AF	m	78	70 – 79	Thomas
+ERR5106572	RA	Atria	CAD	SR	m	79	70 – 79	Darkow
+GSM3666585	LA	Atria	AF	AF	m	80	80	Thomas
+GSM3666586	RA	Atria	AF	AF	m	80	80	Thomas
